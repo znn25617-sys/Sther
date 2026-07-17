@@ -1,0 +1,165 @@
+name: Android Build (APK + AAB)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  web-build-and-capture:
+    name: Web Build & QA Capture
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (Vite production)
+        run: npm run build
+
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+      # ---- QA visual capture via Playwright ----
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Start preview server (background)
+        run: npm run preview -- --port 4173 --host &
+        env:
+          CI: 'true'
+
+      - name: Wait for preview server
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sSf http://localhost:4173 > /dev/null 2>&1; then
+              echo "Preview server is up."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Preview server did not start in time."
+          exit 1
+
+      - name: Run capture script (start menu + gameplay screenshots)
+        run: node scripts/capture.mjs http://localhost:4173
+
+      - name: Upload QA screenshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-screenshots
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+  android-build:
+    name: Android APK & AAB
+    runs-on: ubuntu-latest
+    needs: web-build-and-capture
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1. Environment Setup: Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # 1. Environment Setup: JDK 17 (required for Android Gradle / AGP 8)
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 1. Environment Setup: Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platforms;android-34
+            build-tools;34.0.0
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 2. Web Build
+      - name: Build (Vite production)
+        run: npm run build
+
+      # 3. Capacitor Sync — generate the native Android project and copy dist/
+      - name: Add & Sync Android platform
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      # Inject app identity: app name + required permissions.
+      - name: Configure Android identity & permissions
+        shell: bash
+        run: |
+          STRINGS="android/app/src/main/res/values/strings.xml"
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i 's/<string name="app_name">.*<\/string>/<string name="app_name">Aetheria'"'"'s Ascent<\/string>/' "$STRINGS"
+          # Ensure Internet permission (Supabase leaderboard) + vibration (haptics).
+          grep -q "android.permission.INTERNET" "$MANIFEST" || \
+            sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n    <uses-permission android:name="android.permission.VIBRATE" />' "$MANIFEST"
+
+      # 4. Android Compilation (Gradle) — APK + AAB
+      - name: Build Android APK & AAB (Gradle)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon -Dorg.gradle.jvmargs="-Xmx2048m"
+          ./gradlew bundleRelease --no-daemon -Dorg.gradle.jvmargs="-Xmx2048m"
+
+      # 5. Sign the release binaries with a generated keystore.
+      - name: Sign APK & AAB
+        run: |
+          keytool -genkey -v -keystore aetheria_release.jks -alias aetheria_alias \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass "aetheria_pass_2026" -keypass "aetheria_pass_2026" \
+            -dname "CN=AetheriaDev, OU=GameDev, O=AetheriaAscent, L=Cairo, S=Earth, C=EG"
+
+          APK_PATH=$(find android/app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
+          /usr/local/lib/android/sdk/build-tools/34.0.0/apksigner sign \
+            --ks aetheria_release.jks --ks-pass pass:"aetheria_pass_2026" \
+            --out "AetheriasAscent-release.apk" "$APK_PATH"
+
+          AAB_PATH=$(find android/app/build/outputs/bundle/release/ -name "*.aab" | head -n 1)
+          jarsigner -keystore aetheria_release.jks -storepass "aetheria_pass_2026" "$AAB_PATH" aetheria_alias
+          cp "$AAB_PATH" "AetheriasAscent-release.aab"
+
+      # 6. Artifact Deployment — upload APK, AAB as workflow artifacts.
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aetherias-ascent-apk
+          path: AetheriasAscent-release.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aetherias-ascent-aab
+          path: AetheriasAscent-release.aab
+          if-no-files-found: error
+          retention-days: 14
