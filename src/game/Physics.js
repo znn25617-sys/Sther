@@ -30,7 +30,27 @@ export function createBody(x, y, w, h, opts = {}) {
   };
 }
 
+// 💡 صمام الأمان العالمي لمنع خطأ getLocalBounds وتأمين أبعاد الكائنات أثناء تحميل الصور
 export function getRect(body) {
+  if (!body) return { x: 0, y: 0, w: 0, h: 0 };
+  
+  // إذا كان الكائن عبارة عن عنصر رسومي (Sprite) يحتوي على دالة الأبعاد المباشرة ونريد التحقق منها
+  if (typeof body.getLocalBounds === 'function') {
+    try {
+      const bounds = body.getLocalBounds();
+      return { 
+        x: body.x ?? 0, 
+        y: body.y ?? 0, 
+        w: bounds.width ?? 40, 
+        h: bounds.height ?? 52 
+      };
+    } catch (e) {
+      // أبعاد بديلة في حالة عدم اكتمال تحميل الصورة مؤقتاً لضمان عدم توقف اللعبة
+      return { x: body.x ?? 0, y: body.y ?? 0, w: body.w ?? 40, h: body.h ?? 52 };
+    }
+  }
+
+  // الحساب الافتراضي للمجسمات الفيزيائية العادية
   return { x: body.x, y: body.y, w: body.w, h: body.h };
 }
 
