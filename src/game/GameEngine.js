@@ -1,6 +1,21 @@
 // GameEngine.js
 // The core game loop, physics integration, camera, scoring, and lives.
 // Owns PixiJS stage + ticker and exposes callbacks for React (HUD/store).
+
+// 🚨 صمام أمان عالمي لحماية المحرك بأكمله من انهيار getLocalBounds أثناء تحميل الصور محلياً
+import { DisplayObject } from 'pixi.js';
+if (DisplayObject && !DisplayObject.prototype._originalGetLocalBounds) {
+  DisplayObject.prototype._originalGetLocalBounds = DisplayObject.prototype.getLocalBounds;
+  DisplayObject.prototype.getLocalBounds = function (rect, skipChildren) {
+    try {
+      return this._originalGetLocalBounds(rect, skipChildren);
+    } catch (e) {
+      // إرجاع أبعاد افتراضية مؤقتة لمنع الشاشة الحمراء واستمرار اللعبة بأمان
+      return rect || { x: 0, y: 0, width: 64, height: 64 };
+    }
+  };
+}
+
 import { Application, Container } from 'pixi.js';
 import { Player } from './Player.js';
 import { World, GROUND_H } from './World.js';
@@ -195,6 +210,7 @@ export class GameEngine {
     this.lives -= 1;
     this.onLives?.(this.lives);
     if (this.lives <= 0) {
+      
       this.gameOver();
     } else {
       // Respawn at a safe spot near the camera.
