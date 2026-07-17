@@ -97,6 +97,13 @@ export const palette = {
   }
 };
 
+// 💡 إضافة مسارات استدعاء باقي صور اللعبة الأصلية محلياً لتستخدمها باقي الملفات
+export const gameAssets = {
+  background: 'background.png',
+  starShard: 'starshard.png',
+  aetherHeart: 'aetherheart.png'
+};
+
 // Convert a hex color to a 0xRRGGBB number for PixiJS.
 export function hexToNum(hex) {
   return parseInt(hex.replace('#', ''), 16);
