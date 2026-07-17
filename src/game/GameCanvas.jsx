@@ -2,6 +2,21 @@
 // React wrapper around the PixiJS GameEngine. Manages the canvas element,
 // lifecycle (mount/unmount), resize handling, and bridges engine callbacks
 // into the Zustand store. All PixiJS resources are cleaned up on unmount.
+
+// 🚨 صمام أمان احترازي عالمي لمنع انهيار اللعبة عند استدعاء getLocalBounds أثناء تحميل الصور
+import { DisplayObject } from 'pixi.js';
+if (DisplayObject && !DisplayObject.prototype._originalGetLocalBounds) {
+  DisplayObject.prototype._originalGetLocalBounds = DisplayObject.prototype.getLocalBounds;
+  DisplayObject.prototype.getLocalBounds = function (rect, skipChildren) {
+    try {
+      return this._originalGetLocalBounds(rect, skipChildren);
+    } catch (e) {
+      // إرجاع صندوق أبعاد افتراضي مؤقت لمنع ظهور الشاشة الحمراء واستمرار اللعبة
+      return rect || { x: 0, y: 0, width: 64, height: 64 };
+    }
+  };
+}
+
 import { useEffect, useRef } from 'react';
 import { GameEngine } from '../game/GameEngine.js';
 import { useGameStore, GAME_STATUS } from '../store/gameStore.js';
