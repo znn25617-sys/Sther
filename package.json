@@ -13,9 +13,11 @@
   "dependencies": {
     "@capacitor/core": "^8.4.2",
     "@capacitor/haptics": "^8.0.2",
+    "@pixi/react": "^7.1.2",
     "@supabase/supabase-js": "^2.57.4",
     "framer-motion": "^12.42.2",
     "lucide-react": "^0.344.0",
+    "pixi.js": "^7.4.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^4.5.2"
