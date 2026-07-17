@@ -1,46 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vitejs.dev/config/
-// Optimized for cross-platform deployment: web (PWA), desktop (Electron), mobile (Capacitor shell).
+// Vite config tuned for Capacitor Android packaging.
+// Key: `base: './'` emits relative asset paths so the built JS/CSS loads
+// correctly under the WebView's `https://localhost` or `file://` scheme.
+// Absolute paths (base: '/') fail inside a Capacitor WebView and produce a
+// black screen because the assets resolve to the device root, not the app.
 export default defineConfig({
-  // Relative base so the build works inside Electron/Cordova shells and sub-paths.
   base: './',
-  plugins: [
-    react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'robots.txt'],
-      manifest: {
-        name: "Aetheria's Ascent",
-        short_name: 'Aetheria',
-        description: 'A magical 2D side-scroller coin & treasure collecting game.',
-        theme_color: '#1b1432',
-        background_color: '#0d0820',
-        display: 'fullscreen',
-        orientation: 'landscape',
-        start_url: '.',
-        icons: [
-          {
-            src: 'icon-192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'icon-512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
-        ]
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
-      }
-    })
-  ],
+  plugins: [react()],
   build: {
+    outDir: 'dist',
     target: 'es2019',
     sourcemap: false,
     chunkSizeWarningLimit: 1500,
