@@ -109,8 +109,14 @@ export class Treasure {
     }
   }
 
+  // تثبيت الحساب الرياضي على نقطة الارتكاز الثابتة لضمان استقرار getLocalBounds ومنع الانهيار
   get rect() {
-    return { x: this.x - this.w / 2, y: this.y - this.h / 2, w: this.w, h: this.h };
+    return { 
+      x: (this.x ?? 0) - (this.w ?? 32) / 2, 
+      y: (this.baseY ?? this.y ?? 0) - (this.h ?? 32) / 2, 
+      w: this.w ?? 32, 
+      h: this.h ?? 32 
+    };
   }
 
   overlaps(playerRect) {
