@@ -1,7 +1,11 @@
 // HUD.jsx
-// Responsive in-game overlay: score, lives (hearts), pause button, and mute.
-// Pure DOM/CSS overlay rendered above the PixiJS canvas.
+// Responsive mobile HUD overlay for Android: score, lives, pause/mute, and
+// the virtual touch controls (left/right D-pad + jump button) integrated into
+// the HUD as required. Pure DOM/CSS overlay rendered above the PixiJS canvas.
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore.js';
+import { setTouchWalkDir, pressJump, releaseJump } from '../game/Input.js';
+import { hapticLight } from '../lib/haptics.js';
 
 // eslint-disable-next-line react/prop-types
 function Hearts({ lives }) {
@@ -16,6 +20,61 @@ function Hearts({ lives }) {
     );
   }
   return <div className="hud-hearts">{items}</div>;
+}
+
+function TouchControls() {
+  const leftRef = useRef(null);
+  const rightRef = useRef(null);
+  const jumpRef = useRef(null);
+
+  function bindPressRelease(el, onDown, onUp) {
+    if (!el) return () => {};
+    const down = (e) => { e.preventDefault(); onDown(); };
+    const up = (e) => { e.preventDefault(); if (onUp) onUp(); };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointerleave', up);
+    el.addEventListener('pointercancel', up);
+    return () => {
+      el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointerleave', up);
+      el.removeEventListener('pointercancel', up);
+    };
+  }
+
+  useEffect(() => {
+    const cleanups = [
+      bindPressRelease(
+        leftRef.current,
+        () => { setTouchWalkDir(-1); hapticLight(); },
+        () => setTouchWalkDir(0)
+      ),
+      bindPressRelease(
+        rightRef.current,
+        () => { setTouchWalkDir(1); hapticLight(); },
+        () => setTouchWalkDir(0)
+      ),
+      bindPressRelease(jumpRef.current, () => pressJump(), () => releaseJump())
+    ];
+    return () => cleanups.forEach((c) => c());
+  }, []);
+
+  return (
+    <div className="touch-controls">
+      <div className="touch-dpad">
+        <button ref={leftRef} className="touch-btn touch-left" aria-label="Move left">
+          {'\u25C0'}
+        </button>
+        <button ref={rightRef} className="touch-btn touch-right" aria-label="Move right">
+          {'\u25B6'}
+        </button>
+      </div>
+      <button ref={jumpRef} className="touch-btn touch-jump" aria-label="Jump">
+        {'\u2191'}
+      </button>
+    </div>
+  );
 }
 
 export default function HUD() {
@@ -49,6 +108,9 @@ export default function HUD() {
           </button>
         </div>
       </div>
+
+      {/* Virtual touch controls integrated into the HUD for Android. */}
+      <TouchControls />
     </div>
   );
 }

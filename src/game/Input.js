@@ -70,6 +70,8 @@ export function setTouchWalkDir(d) {
 export function pressJump() {
   input.jump = true;
   input.jumpHeld = true;
+  // Fire-and-forget haptic feedback on jump.
+  import('../lib/haptics.js').then((m) => m.hapticMedium()).catch(() => {});
 }
 export function releaseJump() {
   input.jumpHeld = false;

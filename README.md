@@ -1,8 +1,8 @@
 # Aetheria's Ascent
 
 A magical 2D side-scroller / platformer coin & treasure-collecting game with a
-Ghibli / watercolor aesthetic. Built with React + Vite + PixiJS and a custom
-2D arcade physics engine.
+Ghibli / watercolor aesthetic, built for **Android** (APK + AAB) via React +
+Vite + PixiJS, wrapped with Capacitor.
 
 ## Features
 
@@ -16,9 +16,9 @@ Ghibli / watercolor aesthetic. Built with React + Vite + PixiJS and a custom
 - **Procedural world** — infinite chunked generation with platforms, gaps, and
   treasures; recycling for memory efficiency (`src/game/World.js`).
 - **Collectibles** — yellow Starshards and rare rotating purple Aether Hearts.
-- **Multi-device input** — keyboard (Arrow keys / WASD + Space) and on-screen
-  touch controls for mobile/tablet (`src/game/Input.js`,
-  `src/components/TouchControls.jsx`).
+- **Android touch controls** — virtual D-pad (bottom-left) + jump button
+  (bottom-right) integrated into the HUD, with native haptic feedback
+  (`@capacitor/haptics`).
 - **Global leaderboard** — top scores persisted via Supabase
   (`src/lib/highScores.js`).
 - **State management** — Zustand store for game status, score, lives, audio.
@@ -32,35 +32,39 @@ Ghibli / watercolor aesthetic. Built with React + Vite + PixiJS and a custom
 | Physics        | Custom 2D arcade (this repo)    |
 | State          | Zustand                         |
 | Backend        | Supabase (leaderboard)          |
-| Desktop        | Electron (electron-builder)     |
-| Mobile shell   | Capacitor (config included)     |
-| PWA            | vite-plugin-pwa                 |
+| Mobile bridge  | Capacitor 6 (Android)           |
+| Haptics        | @capacitor/haptics              |
 
 ## Scripts
 
-| Script              | Description                              |
-|---------------------|------------------------------------------|
-| `npm run dev`       | Start the Vite dev server.               |
-| `npm run build`     | Production build into `dist/`.           |
-| `npm run preview`   | Preview the built app locally.           |
-| `npm run lint`      | Run ESLint.                              |
-| `npm run electron:build` | Build the Windows portable EXE.     |
-| `npm run cap:sync`  | Sync `dist/` into native mobile shells.  |
+| Script              | Description                                       |
+|---------------------|---------------------------------------------------|
+| `npm run dev`       | Start the Vite dev server.                        |
+| `npm run build`     | Production build into `dist/`.                    |
+| `npm run preview`   | Preview the built app locally.                    |
+| `npm run lint`      | Run ESLint.                                       |
+| `npm run cap:sync`  | Build + sync `dist/` into the Android project.    |
+| `npm run cap:add`   | Add the native Android platform.                  |
+| `npm run cap:open`  | Open the Android project in Android Studio.       |
+| `npm run android:build` | Build + sync + Gradle APK & AAB.              |
 
-## Controls
+## Android Controls
 
-- **Desktop:** Arrow keys or WASD to move, Space to jump.
-- **Mobile:** On-screen directional pad + jump button.
+- **Move:** left/right D-pad buttons (bottom-left of screen).
+- **Jump:** the glowing button on the bottom-right.
+- Haptic feedback fires on movement and jumps via Capacitor Haptics.
 
-## CI/CD
+## CI/CD — Android
 
-`.github/workflows/multiplatform-build.yml` runs on every push to `main`:
+`.github/workflows/android-build.yml` runs on every push to `main`:
 
-1. Lint + Vite production build (PWA-ready `dist/`).
-2. Playwright capture: screenshots of the start menu and active gameplay,
-   uploaded as a QA artifact.
-3. Electron Windows portable `.exe` packaging via electron-builder.
-4. Uploads the web build, the Windows EXE, and the QA screenshots as
+1. **Web build & QA capture** — lint + Vite build, then a Playwright snapshot
+   of the start menu and active gameplay saved as `capture.png` (QA artifact).
+2. **Android build** — JDK 17 + Android SDK, `npx cap add android` +
+   `npx cap sync android`, then Gradle compiles both the release **APK**
+   (`assembleRelease`) and the Play Store **AAB** (`bundleRelease`).
+3. **Signing** — release binaries signed with a generated keystore.
+4. **Artifacts** — the signed APK, signed AAB, and QA screenshots uploaded as
    workflow artifacts.
 
 ## Project Structure
@@ -79,21 +83,19 @@ src/
     Input.js           # Keyboard + touch input
     Palette.js         # Color system + gradient textures
   components/
-    HUD.jsx            # In-game score / lives / pause overlay
+    HUD.jsx            # Mobile score/lives overlay + virtual touch controls
     StartScreen.jsx    # Main menu + leaderboard
     GameOverScreen.jsx # Final score + submission + board
     PauseScreen.jsx    # Pause overlay
-    TouchControls.jsx  # Mobile on-screen controls
   store/
     gameStore.js       # Zustand global state
   lib/
     supabaseClient.js  # Supabase singleton
     highScores.js      # Leaderboard API
-electron/
-  main.cjs             # Electron main process
-  preload.cjs          # Preload bridge
+    haptics.js         # Capacitor haptics wrapper
 scripts/
   capture.mjs          # Playwright QA capture script
 .github/workflows/
-  multiplatform-build.yml
+  android-build.yml    # Android APK + AAB pipeline
+capacitor.config.json  # Capacitor Android config (appId, webDir: dist)
 ```
