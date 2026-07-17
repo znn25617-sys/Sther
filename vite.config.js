@@ -27,8 +27,8 @@ export default defineConfig({
       output: {
         manualChunks: {
           pixi: ['pixi.js'],
-          react: ['react', 'react-dom'],
-          supabase: ['@supabase/supabase-js']
+          react: ['react', 'react-dom']
+          // تم إزالة supabase من هنا لإنهاء مشكلة "Could not resolve entry module"
         }
       }
     }
