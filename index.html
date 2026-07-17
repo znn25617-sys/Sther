@@ -2,16 +2,55 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#1b1432" />
+    <meta name="theme-color" content="#0d0820" />
     <meta name="description" content="Aetheria's Ascent — a magical 2D side-scroller coin & treasure collecting game." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <title>Aetheria's Ascent</title>
+    <style>
+      /* Inline loading screen — visible immediately, before the JS bundle
+         parses or React mounts. If this disappears, React rendered; if it
+         stays, the bundle failed to load (path/CORS issue). */
+      html, body { margin: 0; padding: 0; height: 100%; background: #0d0820; }
+      #root { width: 100%; height: 100%; }
+      #boot-loading {
+        position: fixed; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: radial-gradient(ellipse at 50% 40%, #1b1432, #0d0820);
+        color: #d4c7ff;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        z-index: 9999;
+        transition: opacity 0.4s ease;
+      }
+      #boot-loading .boot-title {
+        font-size: 1.6rem; font-weight: 700; letter-spacing: 0.04em;
+        margin-bottom: 18px;
+        text-shadow: 0 0 18px rgba(182,160,255,0.5);
+      }
+      #boot-loading .boot-spinner {
+        width: 44px; height: 44px;
+        border: 3px solid rgba(182,160,255,0.2);
+        border-top-color: #b6a0ff;
+        border-radius: 50%;
+        animation: boot-spin 0.9s linear infinite;
+      }
+      #boot-loading .boot-sub {
+        margin-top: 16px; font-size: 0.85rem; color: #6e76a3;
+      }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <div id="root">
+      <div id="boot-loading">
+        <div class="boot-title">Aetheria&rsquo;s Ascent</div>
+        <div class="boot-spinner"></div>
+        <div class="boot-sub">Awakening the realm…</div>
+      </div>
+    </div>
+    <script type="module" src="./src/main.jsx"></script>
   </body>
 </html>
