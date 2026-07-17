@@ -1,7 +1,6 @@
 // Player.js
-// Iris — the player character. Procedurally drawn with floating animations,
-// jump squash/stretch, and a glowing aura. No external sprite assets.
-import { Container, Graphics, Sprite } from 'pixi.js';
+// Iris — the player character. Updated to load the native image asset with local bounds.
+import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 import { hexToNum } from './Palette.js';
 import { createBody } from './Physics.js';
 
@@ -38,7 +37,15 @@ export class Player {
     this.aura.alpha = 0.8;
     this.container.addChild(this.aura);
 
-    // Body graphics (drawn each frame for squash/stretch).
+    // 💡 ضبط سحب واستدعاء الصورة الأصلية بدلاً من الرسم البرمجي
+    this.playerTexture = Texture.from('player.png');
+    this.sprite = new Sprite(this.playerTexture);
+    this.sprite.anchor.set(0.5);
+    this.sprite.width = PLAYER_W;
+    this.sprite.height = PLAYER_H;
+    this.container.addChild(this.sprite);
+
+    // Body graphics (retained for structural alignment and flicker effect).
     this.gfx = new Graphics();
     this.container.addChild(this.gfx);
 
@@ -71,55 +78,14 @@ export class Player {
     g.clear();
 
     const flicker = this.invuln > 0 && Math.floor(this.invuln * 20) % 2 === 0;
-    if (flicker) return;
-
-    // Body: a rounded, soft humanoid form in pastel tones.
-    const w = PLAYER_W;
-    const h = PLAYER_H;
-
-    // Cape / robe (flowing, watercolor)
-    g.beginFill(hexToNum('#5f3cc0'), 0.85);
-    g.moveTo(-w * 0.35, -h * 0.1);
-    g.quadraticCurveTo(-w * 0.6, h * 0.2, -w * 0.3, h * 0.45);
-    g.lineTo(w * 0.3, h * 0.45);
-    g.quadraticCurveTo(w * 0.6, h * 0.2, w * 0.35, -h * 0.1);
-    g.endFill();
-
-    // Torso
-    g.beginFill(hexToNum('#9a78f0'));
-    g.drawRoundedRect(-w * 0.28, -h * 0.15, w * 0.56, h * 0.5, 10);
-    g.endFill();
-
-    // Head
-    g.beginFill(hexToNum('#ffe9c7'));
-    g.drawCircle(0, -h * 0.28, w * 0.26);
-    g.endFill();
-
-    // Hair (flowing)
-    g.beginFill(hexToNum('#3a2a6e'), 0.9);
-    g.moveTo(-w * 0.26, -h * 0.3);
-    g.quadraticCurveTo(-w * 0.5, -h * 0.1, -w * 0.18, h * 0.05);
-    g.quadraticCurveTo(0, -h * 0.05, w * 0.18, h * 0.05);
-    g.quadraticCurveTo(w * 0.5, -h * 0.1, w * 0.26, -h * 0.3);
-    g.quadraticCurveTo(0, -h * 0.55, -w * 0.26, -h * 0.3);
-    g.endFill();
-
-    // Eyes (glowing)
-    g.beginFill(hexToNum('#54d6f7'));
-    g.drawCircle(-w * 0.08, -h * 0.28, 2.4);
-    g.drawCircle(w * 0.08, -h * 0.28, 2.4);
-    g.endFill();
-
-    // Glow gem on chest
-    g.beginFill(hexToNum('#ffe9a8'));
-    g.drawCircle(0, h * 0.02, 4);
-    g.endFill();
-
-    // Legs (simple)
-    g.beginFill(hexToNum('#372378'));
-    g.drawRoundedRect(-w * 0.2, h * 0.3, w * 0.16, h * 0.18, 4);
-    g.drawRoundedRect(w * 0.04, h * 0.3, w * 0.16, h * 0.18, 4);
-    g.endFill();
+    
+    // 💡 صمام أمان للتحكم في ظهور واختفاء الصورة الأصلية عند وميض الضرر (Flicker)
+    if (flicker) {
+      this.sprite.visible = false;
+      return;
+    } else {
+      this.sprite.visible = true;
+    }
   }
 
   // Trigger jump squash & stretch.
