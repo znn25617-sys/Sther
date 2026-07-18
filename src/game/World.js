@@ -156,7 +156,8 @@ export class World {
     const g = this.groundGfx;
     g.clear();
     for (const s of this.solids) {
-      if (s.h >= GROUND_H) {
+      // صمام أمان للتحقق من سلامة وجود المجسم قبل الرسم
+      if (s && s.h >= GROUND_H) {
         // Ground band with watercolor top edge.
         g.beginFill(hexToNum('#1a1330'));
         g.drawRect(s.x, s.y, s.w, s.h);
@@ -182,7 +183,8 @@ export class World {
     const g = this.platformGfx;
     g.clear();
     for (const s of this.solids) {
-      if (s.h < GROUND_H) {
+      // صمام أمان للتحقق من سلامة وجود المنصة قبل الرسم
+      if (s && s.h < GROUND_H) {
         // Floating stone platform with glow underside.
         g.beginFill(hexToNum('#2a2050'));
         g.drawRoundedRect(s.x, s.y, s.w, s.h, 8);
@@ -202,19 +204,24 @@ export class World {
     const cullBehind = cameraX - 400;
     // Remove solids that are fully behind the camera and not the ground runway.
     this.solids = this.solids.filter(s => {
+      if (!s) return false;
       const keep = s.x + s.w > cullBehind;
       return keep;
     });
     // Cull treasures behind the camera.
     const kept = [];
     for (const t of this.treasures) {
-      if (t.x < cullBehind && !t.collected) {
+      if (t && t.x < cullBehind && !t.collected) {
         t.destroy();
-      } else {
+      } else if (t) {
         kept.push(t);
       }
     }
     this.treasures = kept;
+
+    // تنظيف كتل الـ chunks المرجعية المتزامنة مع التصفية لمنع تسريب حسابات الأبعاد القديمة
+    this.chunks = this.chunks.filter(c => c && (c.x + c.width > cullBehind || c.index === 0));
+
     this.redrawGround();
     this.redrawPlatforms();
   }
@@ -230,7 +237,7 @@ export class World {
     }
     // Update treasures.
     for (const t of this.treasures) {
-      if (!t.collected) t.update(dt);
+      if (t && !t.collected) t.update(dt);
     }
   }
 
@@ -238,9 +245,9 @@ export class World {
   collectOverlaps(playerRect) {
     const collected = [];
     for (const t of this.treasures) {
-      if (!t.collected && t.overlaps(playerRect)) {
+      if (t && !t.collected && t.overlaps(playerRect)) {
         t.collected = true;
-        t.container.visible = false;
+        if (t.container) t.container.visible = false;
         collected.push(t);
       }
     }
@@ -249,7 +256,9 @@ export class World {
 
   destroy() {
     this.container.destroy({ children: true });
-    for (const t of this.treasures) t.destroy();
+    for (const t of this.treasures) {
+      if (t) t.destroy();
+    }
     this.treasures = [];
   }
 }
