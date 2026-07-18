@@ -1,0 +1,17 @@
+{
+  "appId": "com.aetheria.ascent",
+  "appName": "Aetheria's Ascent",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0d0820"
+  }
+}
