@@ -3,11 +3,11 @@
 // Pure math functions — no side effects, no globals.
 
 // Default physical constants tuned for a fluid, floaty magical platformer.
-export const GRAVITY = 2400;       // px/s^2 (strong but snappy)
-export const MOVE_ACCEL = 4200;    // horizontal acceleration while input held
-export const MAX_RUN_SPEED = 360;  // cap on horizontal run speed
-export const FRICTION = 2600;      // deceleration when no input on ground
-export const AIR_FRICTION = 700;   // reduced deceleration in the air
+export const GRAVITY = 2400;        // px/s^2 (strong but snappy)
+export const MOVE_ACCEL = 4200;     // horizontal acceleration while input held
+export const MAX_RUN_SPEED = 360;   // cap on horizontal run speed
+export const FRICTION = 2600;       // deceleration when no input on ground
+export const AIR_FRICTION = 700;    // reduced deceleration in the air
 export const JUMP_VELOCITY = -880; // initial upward velocity on jump
 export const MAX_FALL_SPEED = 1300;
 export const COYOTE_TIME = 0.10;   // grace window after leaving ground (s)
@@ -30,28 +30,34 @@ export function createBody(x, y, w, h, opts = {}) {
   };
 }
 
-// 💡 صمام الأمان العالمي لمنع خطأ getLocalBounds وتأمين أبعاد الكائنات أثناء تحميل الصور
+// 💡 صمام الأمان العالمي المؤمن تماماً ضد الـ Minification وأخطاء أجهزة الأندرويد لـ getLocalBounds
 export function getRect(body) {
   if (!body) return { x: 0, y: 0, w: 0, h: 0 };
   
-  // إذا كان الكائن عبارة عن عنصر رسومي (Sprite) يحتوي على دالة الأبعاد المباشرة ونريد التحقق منها
-  if (typeof body.getLocalBounds === 'function') {
-    try {
+  // تحقق صارم جداً يضمن عدم انهيار التطبيق حتى لو تم ضغط اسم الكائن إلى 't'
+  try {
+    if (body.getLocalBounds && typeof body.getLocalBounds === 'function') {
       const bounds = body.getLocalBounds();
-      return { 
-        x: body.x ?? 0, 
-        y: body.y ?? 0, 
-        w: bounds.width ?? 40, 
-        h: bounds.height ?? 52 
-      };
-    } catch (e) {
-      // أبعاد بديلة في حالة عدم اكتمال تحميل الصورة مؤقتاً لضمان عدم توقف اللعبة
-      return { x: body.x ?? 0, y: body.y ?? 0, w: body.w ?? 40, h: body.h ?? 52 };
+      if (bounds) {
+        return { 
+          x: typeof body.x === 'number' ? body.x : 0, 
+          y: typeof body.y === 'number' ? body.y : 0, 
+          w: typeof bounds.width === 'number' ? bounds.width : (body.w || 40), 
+          h: typeof bounds.height === 'number' ? bounds.height : (body.h || 52) 
+        };
+      }
     }
+  } catch (e) {
+    // كتم الخطأ تماماً في بيئة التشغيل لضمان استمرارية اللعبة والاعتماد على الـ Fallback المباشر بالأسفل
   }
 
-  // الحساب الافتراضي للمجسمات الفيزيائية العادية
-  return { x: body.x, y: body.y, w: body.w, h: body.h };
+  // الحساب الافتراضي والبديل الآمن للمجسمات الفيزيائية العادية والكائنات أثناء التحميل
+  return { 
+    x: body.x ?? 0, 
+    y: body.y ?? 0, 
+    w: body.w || 40, 
+    h: body.h || 52 
+  };
 }
 
 // Standard AABB overlap test (axis-aligned bounding boxes).
