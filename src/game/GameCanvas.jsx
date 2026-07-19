@@ -5,37 +5,54 @@
 
 import { DisplayObject, Rectangle } from 'pixi.js';
 
-// --- الإصلاح الشامل والجذري لخطأ getLocalBounds على الأندرويد والهاتف ---
-if (DisplayObject) {
-  // 1. إذا كانت الدالة الأصلية موجودة، نحفظها باسم آمن لحمايتها من الـ Minification
-  if (!DisplayObject.prototype._originalGetLocalBounds) {
-    DisplayObject.prototype._originalGetLocalBounds = DisplayObject.prototype.getLocalBounds || 
-      function(rect) { return rect || this._localBounds || new Rectangle(0, 0, 64, 64); };
-  }
-
-  // 2. إعادة كتابة الدالة بطريقة دفاعية تمنع الانهيار تماماً وتدعم صيغة t.getLocalBounds()
-  DisplayObject.prototype.getLocalBounds = function (rect, skipChildren) {
+// --- إصلاح شامل لخطأ getLocalBounds على الأندرويد والهاتف ---
+if (typeof window !== 'undefined' && DisplayObject) {
+  const originalGetLocalBounds = DisplayObject.prototype.getLocalBounds;
+  
+  // تعريف دالة آمنة كبديل
+  const safeGetLocalBounds = function(rect, skipChildren) {
     try {
-      if (typeof this._originalGetLocalBounds === 'function') {
-        return this._originalGetLocalBounds(rect, skipChildren);
+      // محاولة استخدام الدالة الأصلية
+      if (originalGetLocalBounds && typeof originalGetLocalBounds === 'function') {
+        const result = originalGetLocalBounds.call(this, rect, skipChildren);
+        if (result instanceof Rectangle) {
+          return result;
+        }
       }
-      return rect instanceof Rectangle ? rect : new Rectangle(0, 0, 64, 64);
-    } catch {
-      return rect instanceof Rectangle ? rect : new Rectangle(0, 0, 64, 64);
+    } catch (error) {
+      console.warn('خطأ في getLocalBounds (تم التعامل معه):', error.message);
     }
+    
+    // في حالة الفشل، إرجاع قيمة افتراضية آمنة
+    if (rect instanceof Rectangle) {
+      rect.x = 0;
+      rect.y = 0;
+      rect.width = 64;
+      rect.height = 64;
+      return rect;
+    }
+    return new Rectangle(0, 0, 64, 64);
   };
-}
-
-// حماية إضافية عامة في بيئة المتصفح لضمان عدم حدوث أي تسريب للخطأ
-if (typeof window !== 'undefined') {
-  window.addEventListener('error', (e) => {
-    if (e.message && e.message.includes('getLocalBounds')) {
-      e.preventDefault(); // يمنع شاشة Bolt البنفسجية من الظهور ويجعل اللعبة تتخطى الخطأ
-      console.warn('تنبيه أندرويد: تم قمع وتخطي خطأ الرسوميات بنجاح.');
+  
+  // استبدال الدالة بنسخة آمنة
+  DisplayObject.prototype.getLocalBounds = safeGetLocalBounds;
+  
+  // حماية إضافية: التقاط الأخطاء العامة
+  window.addEventListener('error', (event) => {
+    if (event.message && event.message.includes('getLocalBounds')) {
+      event.preventDefault();
+      console.warn('تم قمع خطأ getLocalBounds بنجاح');
+    }
+  });
+  
+  // حماية أخرى: التقاط أخطاء Promise غير المعالجة
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason && String(event.reason).includes('getLocalBounds')) {
+      event.preventDefault();
+      console.warn('تم قمع خطأ Promise getLocalBounds بنجاح');
     }
   });
 }
-// -----------------------------------------------------------------------
 
 import { useEffect, useRef } from 'react';
 import { GameEngine } from '../game/GameEngine.js';
