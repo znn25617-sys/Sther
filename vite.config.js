@@ -20,9 +20,13 @@ export default defineConfig({
   ],
   build: {
     outDir: 'dist',
-    target: 'es2019',
+    target: 'es2022', // تم ترقيته لدعم أحدث ميزات الجافاسكربت على نظام WebView للأندرويد
     sourcemap: false,
-    chunkSizeWarningLimit: 1500,
+    chunkSizeWarningLimit: 2000,
+    
+    // 1. الحل الأبدي: إيقاف تشويه وضغط الأكواد تماماً لتبقى أسماء الدوال والـ Runners كما هي في الذاكرة
+    minify: false,
+    
     rollupOptions: {
       output: {
         manualChunks: {
@@ -32,6 +36,11 @@ export default defineConfig({
         }
       }
     }
+  },
+  esbuild: {
+    // 2. إجبار المترجم على الاحتفاظ بأسماء الكلاسات والدوال الأصلية (مثل getLocalBounds و runners) بنسبة 100%
+    keepNames: true,
+    legalComments: 'none'
   },
   server: {
     host: true,           // bind 0.0.0.0 — expose to LAN / Android emulator
