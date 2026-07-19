@@ -7,6 +7,21 @@
 // visible error card instead of a black screen. A loading gate hides the
 // overlays until the PixiJS engine reports it is ready, isolating React
 // rendering from PixiJS/WebGL initialization.
+
+// --- حماية برمجية لمنع خطأ getLocalBounds من تعطيل التطبيق على الهاتف ---
+if (typeof window !== 'undefined') {
+  const safeGetLocalBounds = function() {
+    return this._localBounds || { x: 0, y: 0, width: 0, height: 0, convertToZone: () => {} };
+  };
+  if (window.PIXI && window.PIXI.DisplayObject && !window.PIXI.DisplayObject.prototype.getLocalBounds) {
+    window.PIXI.DisplayObject.prototype.getLocalBounds = safeGetLocalBounds;
+  }
+  if (window.PIXI && window.PIXI.Container && !window.PIXI.Container.prototype.getLocalBounds) {
+    window.PIXI.Container.prototype.getLocalBounds = safeGetLocalBounds;
+  }
+}
+// -------------------------------------------------------------------
+
 import { useState, useEffect } from 'react';
 import GameCanvas from './game/GameCanvas.jsx';
 import HUD from './components/HUD.jsx';
@@ -35,11 +50,12 @@ export default function App() {
       const x = (e.clientX ?? rect.left + rect.width / 2) - rect.left - size / 2;
       const y = (e.clientY ?? rect.top + rect.height / 2) - rect.top - size / 2;
       const ink = document.createElement('span');
+      const inkStyle = ink.style;
       ink.className = 'ripple-ink';
-      ink.style.width = `${size}px`;
-      ink.style.height = `${size}px`;
-      ink.style.left = `${x}px`;
-      ink.style.top = `${y}px`;
+      inkStyle.width = `${size}px`;
+      inkStyle.height = `${size}px`;
+      inkStyle.left = `${x}px`;
+      inkStyle.top = `${y}px`;
       el.appendChild(ink);
       const remove = () => {
         if (ink.parentNode) ink.parentNode.removeChild(ink);
