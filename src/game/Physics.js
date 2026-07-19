@@ -50,29 +50,15 @@ export function createBody(x, y, w, h, opts = {}) {
 }
 
 // Build a safe AABB rectangle from any body-like object.
-//
-// Contract: NEVER throws. Returns {x,y,w,h} with finite numbers in every case:
-//   - null/undefined body  -> {0,0,FALLBACK_W,FALLBACK_H}
-//   - PixiJS display object with a verified getLocalBounds -> its bounds
-//   - anything else        -> {body.x||0, body.y||0, body.w||40, body.h||52}
-//
-// The getLocalBounds call is only reached after
-// `typeof body.getLocalBounds === 'function'`, and is wrapped in try/catch.
-// This is the direct fix for "t.getLocalBounds is not a function": we never
-// let a plain object reach the call unverified, and we never let a failing
-// call propagate.
 export function getRect(body) {
   if (body == null) {
     return { x: 0, y: 0, w: FALLBACK_W, h: FALLBACK_H };
   }
 
-  // Some entities wrap a PixiJS display object. Only trust getLocalBounds after
-  // verifying it is a real function; minified builds rename symbols, so guard
-  // every access and validate the returned bounds are finite and non-empty.
+  // الحماية القصوى والمعدلة لمنع انهيار تصفح الهاتف والـ Minification تماماً
   try {
-    const glb = body.getLocalBounds;
-    if (typeof glb === 'function') {
-      const b = glb.call(body);
+    if (body && typeof body.getLocalBounds === 'function') {
+      const b = body.getLocalBounds(); // الاستدعاء المباشر والأمن للسياق
       if (
         b &&
         Number.isFinite(b.x) &&
@@ -89,9 +75,8 @@ export function getRect(body) {
         };
       }
     }
-  } catch {
-    // Swallow any error from getLocalBounds and fall through to the numeric
-    // rectangle. The engine must stay alive on native platforms.
+  } catch (err) {
+    // قمع وتجاوز أي خطأ قد يحدث أثناء الاستدعاء الداخلي لمحرك الرسوميات
   }
 
   // Numeric AABB fallback — the requested safe rectangle.
@@ -103,8 +88,7 @@ export function getRect(body) {
   };
 }
 
-// Build a safe rect from explicit numeric fields (used by Treasure and any
-// caller that stores width/height instead of w/h). Same never-throws contract.
+// Build a safe rect from explicit numeric fields. Same never-throws contract.
 export function safeRect(obj) {
   if (obj == null) return { x: 0, y: 0, w: FALLBACK_W, h: FALLBACK_H };
   return {
@@ -116,7 +100,6 @@ export function safeRect(obj) {
 }
 
 // Standard AABB overlap test (axis-aligned bounding boxes).
-// Hardened: coerces missing/non-finite fields so a malformed rect never throws.
 export function aabbOverlap(a, b) {
   const ax = finite(a?.x, 0);
   const ay = finite(a?.y, 0);
@@ -134,14 +117,11 @@ export function aabbOverlap(a, b) {
   );
 }
 
-// Swept AABB: returns normalized hit normal {x,y} and time of collision (0..1),
-// or null if no collision this frame. Used to prevent tunnelling at high speeds.
+// Swept AABB: returns normalized hit normal {x,y} and time of collision (0..1)
 export function sweptAABB(dynamic, staticRect, dt) {
   const dx = dynamic.vx * dt;
   const dy = dynamic.vy * dt;
 
-  // Expand the static box by the dynamic box's half-extents to reduce to a
-  // point-vs-rect sweep.
   const expanded = {
     x: staticRect.x - dynamic.w / 2,
     y: staticRect.y - dynamic.h / 2,
@@ -152,7 +132,6 @@ export function sweptAABB(dynamic, staticRect, dt) {
   const cx = dynamic.x + dynamic.w / 2;
   const cy = dynamic.y + dynamic.h / 2;
 
-  // Broad-phase: skip if moving away from the box entirely.
   if (dx > 0 && cx > expanded.x + expanded.w) return null;
   if (dx < 0 && cx < expanded.x) return null;
   if (dy > 0 && cy > expanded.y + expanded.h) return null;
@@ -192,7 +171,6 @@ export function sweptAABB(dynamic, staticRect, dt) {
 
   if (tEnter > tExit || tEnter > 1 || tEnter < 0) return null;
 
-  // Determine the hit normal from whichever axis was entered first.
   let nx = 0;
   let ny = 0;
   if (tFirstX > tFirstY) {
@@ -213,14 +191,10 @@ export function applyGravity(body, dt, gravity = GRAVITY) {
 }
 
 // Resolve a single dynamic body against an array of static solid rects.
-// Mutates body position/velocity and sets onGround. Returns the body.
-// Hardened: skips null/undefined solids and routes every AABB through getRect
-// so a mutated/plain object in the resolution cycle can never throw.
 export function resolveCollisions(body, solids, dt) {
   body.wasOnGround = body.onGround;
   body.onGround = false;
 
-  // Integrate motion along each axis separately for stable arcade collision.
   body.x += body.vx * dt;
   for (const s of solids) {
     if (s == null) continue;
@@ -250,7 +224,6 @@ export function resolveCollisions(body, solids, dt) {
     }
   }
 
-  // Coyote-time window: keep a small grace after walking off a ledge.
   if (body.onGround) {
     body.coyoteTimer = COYOTE_TIME;
   } else if (body.coyoteTimer > 0) {
@@ -260,9 +233,11 @@ export function resolveCollisions(body, solids, dt) {
   return body;
 }
 
-// Attempt a buffered jump. Returns true if a jump was actually performed.
+// Attempt a buffered jump. Optimized for mobile touch events.
 export function tryJump(body, dt) {
-  body.jumpBufferTimer = JUMP_BUFFER;
+  if (body.jumpBufferTimer === undefined || body.jumpBufferTimer <= 0) {
+    body.jumpBufferTimer = JUMP_BUFFER;
+  }
   const grounded = body.onGround || body.coyoteTimer > 0;
   if (grounded && body.jumpBufferTimer > 0) {
     body.vy = JUMP_VELOCITY;
@@ -271,7 +246,6 @@ export function tryJump(body, dt) {
     body.jumpBufferTimer = 0;
     return true;
   }
-  // Decrement buffer each call regardless.
   if (body.jumpBufferTimer > 0) body.jumpBufferTimer -= dt;
   return false;
 }
