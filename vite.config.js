@@ -34,6 +34,9 @@ export default defineConfig({
     }
   },
   server: {
-    host: true
+    host: true,           // bind 0.0.0.0 — expose to LAN / Android emulator
+    port: 5173,           // strict port for stable emulator connections
+    strictPort: true,     // do not auto-increment if 5173 is taken
+    cors: true            // allow Android frontend to reach local/Neon backends
   }
 })

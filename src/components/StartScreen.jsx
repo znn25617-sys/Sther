@@ -45,7 +45,7 @@ export default function StartScreen() {
           />
         </div>
 
-        <button className="primary-btn start-btn" onClick={startGame}>
+        <button className="primary-btn start-btn ripple-btn" onClick={startGame}>
           Begin Ascent
         </button>
 

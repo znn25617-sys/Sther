@@ -76,7 +76,7 @@ export default function GameOverScreen() {
               onChange={(e) => setPlayerName(e.target.value)}
               placeholder="Your name"
             />
-            <button className="primary-btn submit-btn" onClick={handleSubmit} disabled={submitting}>
+            <button className="primary-btn submit-btn ripple-btn" onClick={handleSubmit} disabled={submitting}>
               {submitting ? 'Submitting…' : 'Submit Score'}
             </button>
           </div>
@@ -103,8 +103,8 @@ export default function GameOverScreen() {
         </div>
 
         <div className="gameover-actions">
-          <button className="primary-btn" onClick={handlePlayAgain}>Play Again</button>
-          <button className="secondary-btn" onClick={backToMenu}>Main Menu</button>
+          <button className="primary-btn ripple-btn" onClick={handlePlayAgain}>Play Again</button>
+          <button className="secondary-btn ripple-btn" onClick={backToMenu}>Main Menu</button>
         </div>
       </div>
     </div>

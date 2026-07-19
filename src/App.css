@@ -2,8 +2,9 @@
    Magical Ghibli/watercolor aesthetic. Neutral/violet/teal palette. */
 
 .app-root {
-  position: fixed;
-  inset: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background: #0d0820;
   color: #f3f0ff;
@@ -53,6 +54,30 @@
 @keyframes titleGlow {
   0%, 100% { text-shadow: 0 0 18px rgba(182, 160, 255, 0.55), 0 0 40px rgba(120, 90, 230, 0.35); }
   50% { text-shadow: 0 0 28px rgba(182, 160, 255, 0.85), 0 0 60px rgba(120, 90, 230, 0.5); }
+}
+
+/* ---------- Android ripple effect ----------
+   Material-style ink ripple on touch. Applied via .ripple-btn + the
+   attachRipple helper. Falls back to :active scale on browsers without
+   pointer events. */
+.ripple-btn {
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.ripple-ink {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  background: rgba(182, 160, 255, 0.45);
+  pointer-events: none;
+  animation: ripple 0.55s ease-out forwards;
+}
+@keyframes ripple {
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
 }
 
 /* ---------- Buttons ---------- */

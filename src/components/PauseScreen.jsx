@@ -12,8 +12,8 @@ export default function PauseScreen() {
         <h1 className="pause-title">Paused</h1>
         <p className="pause-subtitle">The realm waits for your return.</p>
         <div className="pause-actions">
-          <button className="primary-btn" onClick={resumeGame}>Resume</button>
-          <button className="secondary-btn" onClick={backToMenu}>Quit to Menu</button>
+          <button className="primary-btn ripple-btn" onClick={resumeGame}>Resume</button>
+          <button className="secondary-btn ripple-btn" onClick={backToMenu}>Quit to Menu</button>
         </div>
       </div>
     </div>
